@@ -7,7 +7,8 @@
 - 🤖 **多模型支持** - 支持任何兼容 OpenAI API 的服务（OpenAI、DeepSeek、智谱、通义千问、Moonshot、百川、豆包等）
 - 🎨 **AI 图片生成** - 支持智谱 CogView、通义万相、硅基流动 FLUX 等图片生成服务
 - 📝 **智能内容创作** - 基于 LangGPT 方法论的结构化 Prompt，自动生成爆款标题和贴文
-- 🚀 **一键发布** - 终端交互式操作，支持手机号验证码登录
+- 🔍 **联网搜索** - 支持 Tavily API 联网搜索，获取真实数据，让内容更具参考价值
+- 🚀 **一键发布** - 终端命令行操作，支持公开/私密发布和账号切换
 - 📁 **本地保存** - 自动保存生成的内容和图片
 
 ## 🚀 快速开始
@@ -36,28 +37,34 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-编辑 `.env` 文件（三个字段即可配置任意模型）：
+编辑 `.env` 文件：
 
 ```bash
-# LLM 配置
+# LLM 配置（必填）
 LLM_MODEL=deepseek-chat
 LLM_BASE_URL=https://api.deepseek.com
 LLM_API_KEY=your_api_key_here
 
-# 图片生成配置
+# 图片生成配置（必填）
 IMAGE_MODEL=cogview-3-plus
 IMAGE_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 IMAGE_API_KEY=your_image_api_key_here
+
+# 联网搜索配置（可选，推荐配置）
+SEARCH_API_KEY=your_tavily_api_key_here
 ```
 
 ### 3. 运行
 
 ```bash
-# 交互式运行
-python main.py
-
-# 直接指定主题
+# 公开发布（默认）
 python main.py --theme "今日美食分享"
+
+# 私密发布
+python main.py --theme "今日美食分享" --private
+
+# 切换账号后发布
+python main.py --theme "今日美食分享" --switch-account
 
 # 查看帮助
 python main.py --help
@@ -69,17 +76,13 @@ python main.py --help
 
 | 参数 | 说明 | 示例 |
 |------|------|------|
-| `--theme, -t` | 贴文主题 | `--theme "探店分享"` |
-| `--llm-model` | LLM 模型名称 | `--llm-model gpt-4o` |
-| `--llm-base-url` | LLM API 地址 | `--llm-base-url https://api.openai.com/v1` |
-| `--llm-api-key` | LLM API Key | `--llm-api-key sk-xxx` |
-| `--image-model` | 图片生成模型 | `--image-model cogview-3-plus` |
-| `--image-base-url` | 图片生成 API 地址 | `--image-base-url https://...` |
-| `--image-api-key` | 图片生成 API Key | `--image-api-key xxx` |
+| `--theme, -t` | 贴文主题（必填） | `--theme "探店分享"` |
+| `--private` | 私密发布（默认公开） | `--private` |
+| `--switch-account, --switch` | 切换账号 | `--switch` |
 | `--category, -c` | 内容类别 | `--category 美食分享` |
 | `--config` | 显示配置帮助 | `--config` |
 
-### 常用模型配置
+### 常用 LLM 配置
 
 | 服务商 | MODEL | BASE_URL |
 |--------|-------|----------|
@@ -99,6 +102,14 @@ python main.py --help
 | 通义万相 | `wanx-v1` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | 硅基流动 | `FLUX.1-schnell` | `https://api.siliconflow.cn/v1` |
 
+### 联网搜索配置
+
+| 服务商 | 说明 | 获取地址 |
+|--------|------|----------|
+| Tavily | AI 搜索 API，提供实时网络数据 | [tavily.com](https://tavily.com) |
+
+启用联网搜索后，内容生成时会自动搜索相关真实数据，使创作内容更具参考价值。
+
 ### 内容类别
 
 - `auto` - 自动识别（默认）
@@ -117,6 +128,7 @@ Autoxhs/
 │   ├── llm_client.py    # LLM 客户端
 │   ├── content_generator.py  # 内容生成
 │   ├── image_generator.py    # 图片生成
+│   ├── search_client.py # 联网搜索客户端
 │   └── xhs_client.py    # 小红书客户端
 ├── data/
 │   ├── prompt/          # Prompt 模板
@@ -139,6 +151,10 @@ LLM_API_KEY=your_key              # API Key
 IMAGE_MODEL=cogview-3-plus        # 模型名称
 IMAGE_BASE_URL=https://open.bigmodel.cn/api/paas/v4  # API 地址
 IMAGE_API_KEY=your_key            # API Key
+
+# 联网搜索配置（可选，推荐）
+SEARCH_API_KEY=your_tavily_key    # Tavily API Key
+SEARCH_ENABLED=true               # 是否启用搜索（默认 true）
 
 # 小红书配置（可选）
 XHS_COOKIE=your_cookie            # Cookie（跳过登录）
@@ -180,6 +196,7 @@ Prompt 模板位于 `data/prompt/theme/` 目录，采用 LangGPT 结构化方法
 🔧 正在初始化...
   ✅ LLM: deepseek-chat @ https://api.deepseek.com
   ✅ 图片生成: cogview-3-plus @ https://open.bigmodel.cn/api/paas/v4
+  ✅ 联网搜索已启用
   ✅ 小红书客户端就绪
 
 📱 小红书登录
@@ -189,21 +206,13 @@ Prompt 模板位于 `data/prompt/theme/` 目录，采用 LangGPT 结构化方法
 请输入验证码: 123456
 ✅ 登录成功！
 
-🎯 请输入贴文主题: 周末探店美食分享
-
 📝 开始创作：周末探店美食分享
 ----------------------------------------
 🔍 正在识别主题类别...
   ✅ 类别: Food_Sharing
 
 🏷️  正在生成标题...
-
-📋 请选择一个标题：
-  [1] 🍜 周末探店｜这家隐藏小店让我惊艳了！
-  [2] 😋 美食地图更新！本地人私藏的宝藏餐厅
-  ...
-
-请选择 (1-10): 1
+  ✅ 标题: 🍜 周末探店｜这家隐藏小店让我惊艳了！
 
 ✍️  正在生成贴文内容...
 
@@ -220,15 +229,13 @@ Prompt 模板位于 `data/prompt/theme/` 目录，采用 LangGPT 结构化方法
 【标签】#美食探店 #周末好去处 #本地美食
 ==================================================
 
-对内容满意吗？ [Y/n]: y
-
 🎨 正在生成封面图...
+  图片描述: A cozy restaurant interior...
   ✅ 图片已保存: data/posts/2026-02-03_12-00-00/cover.png
 
 🚀 准备发布
 ----------------------------------------
-是否设为私密（仅自己可见）？ [Y/n]: y
-确认发布？ [Y/n]: y
+  发布模式: 公开
 📤 正在发布...
 ✅ 发布成功！
 📁 记录已保存: data/posts/2026-02-03_12-00-00/record.json
@@ -241,7 +248,8 @@ Prompt 模板位于 `data/prompt/theme/` 目录，采用 LangGPT 结构化方法
 1. 需要稳定的网络连接
 2. 小红书登录需要手机验证码
 3. 首次运行会自动安装 Playwright 浏览器
-4. 发布内容默认为私密，可在发布时选择公开
+4. 发布内容默认为公开，可通过 `--private` 参数设为私密
+5. 联网搜索需要配置 Tavily API Key，获取地址：[tavily.com](https://tavily.com)
 
 ## 📄 License
 

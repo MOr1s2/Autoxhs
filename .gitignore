@@ -11,3 +11,7 @@ videos/
 test_img/
 data/posts/*
 !data/posts/.gitkeep
+.env
+
+# 小红书登录信息（敏感数据）
+data/.xhs_cookie.json
